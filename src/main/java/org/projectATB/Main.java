@@ -2,12 +2,20 @@ package org.projectATB;
 
 import org.projectATB.bot.AnimeBot;
 import org.telegram.telegrambots.longpolling.TelegramBotsLongPollingApplication;
+import org.projectATB.config.BotConfig;
 
 public class Main {
-    public static void main(String[] args) {
-        String botToken = "8457446766:AAEVQTXyLaVwldje7oUz5Pmv460gtyuB5zI";
-        String token = System.getenv(botToken);
+    public static void main(String[] args) throws Exception {
+
+        String token = BotConfig.getBotToken();
         AnimeBot bot = new AnimeBot(token);
-        System.out.println("Bot started");
+
+        try (TelegramBotsLongPollingApplication app =
+                     new TelegramBotsLongPollingApplication()) {
+
+            app.registerBot(token, bot);
+            System.out.println("Bot started");
+            Thread.currentThread().join();
+        }
     }
 }

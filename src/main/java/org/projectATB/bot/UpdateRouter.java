@@ -3,6 +3,7 @@ package org.projectATB.bot;
 import org.projectATB.handler.CallBackHandler;
 import org.projectATB.handler.CommandHandler;
 import org.telegram.telegrambots.meta.api.objects.Update;
+import org.telegram.telegrambots.meta.exceptions.TelegramApiException;
 import org.telegram.telegrambots.meta.generics.TelegramClient;
 
 public class UpdateRouter {
@@ -15,7 +16,8 @@ public class UpdateRouter {
         this.callBackHandler = new CallBackHandler(client);
     }
 
-    public void route(Update update) {
+    public void route(Update update) throws TelegramApiException
+    {
         if (update.hasMessage() && update.getMessage().hasText()) {
             commandHandler.handle(update);
         } else if (update.hasCallbackQuery()) {
