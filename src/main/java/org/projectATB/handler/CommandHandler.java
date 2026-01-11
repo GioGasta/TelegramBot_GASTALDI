@@ -1,9 +1,11 @@
 package org.projectATB.handler;
 
 import org.projectATB.model.AnimeEntry;
+import org.projectATB.model.AnimeSearchResult;
 import org.projectATB.session.SessionManager;
 import org.projectATB.session.UserSession;
 import org.projectATB.session.UserState;
+import org.projectATB.service.JikanApiService;
 import org.projectATB.service.UserListService;
 import org.projectATB.telegram.KeyboardFactory;
 import org.projectATB.telegram.MessageFactory;
@@ -75,9 +77,27 @@ public class CommandHandler {
         switch (session.getState()) {
 
             case LIST_ADD -> {
-                session.getPendingAdd().add(text);
-                client.execute(MessageFactory.simple(chatId,
-                        "Added \"" + text + "\""));
+                List<AnimeSearchResult> results = JikanApiService.searchAnimeWithDetails(text);
+                
+                if (results.isEmpty()) {
+                    client.execute(MessageFactory.simple(chatId,
+                            "❌ No anime found for '" + text + "'. Please try a different search term."));
+                } else if (JikanApiService.isExactMatch(text, results)) {
+                    // Auto-add exact match
+                    AnimeSearchResult result = results.get(0);
+                    session.getPendingAdd().add(result.getTitle());
+                    client.execute(MessageFactory.simple(chatId,
+                            "✅ Added \"" + result.getTitle() + "\""));
+                } else {
+                    // Multiple matches - show selection keyboard
+                    session.setState(UserState.ANIME_SEARCH_SELECTING);
+                    session.setSearchResults(results);
+                    session.setCurrentSearchQuery(text);
+                    
+                    String message = "📝 Found " + results.size() + " matches for '" + text + "'. Please select:";
+                    client.execute(MessageFactory.withKeyboard(chatId, message,
+                            KeyboardFactory.animeSearchResults(results, session.getSelectedIndexesFromPending())));
+                }
             }
 
             case LIST_WATCHED -> {
@@ -95,6 +115,30 @@ public class CommandHandler {
             case CONFIRM_ADD, CONFIRM_WATCHED, CONFIRM_REMOVE -> {
                 handleConfirmationResponse(chatId, text.toLowerCase(), session);
             }
+
+            /*case ANIME_SEARCH_SELECTING -> {
+                // Add selected anime from search results to pending list
+                Set<Integer> selectedIndexes = session.getSelectedSearchIndexes();
+                List<AnimeSearchResult> searchResults = session.getSearchResults();
+                
+                if (selectedIndexes.isEmpty()) {
+                    client.execute(MessageFactory.simple(chatId, "No anime selected. Please select from the options above."));
+                    return;
+                }
+                
+                session.clearPending(); // Clear any existing pending adds
+                for (Integer index : selectedIndexes) {
+                    if (index >= 0 && index < searchResults.size()) {
+                        AnimeSearchResult result = searchResults.get(index);
+                        session.getPendingAdd().add(result.getTitle());
+                    }
+                }
+                
+                String animeNames = formatAnimeList(session.getPendingAdd());
+                client.execute(MessageFactory.simple(chatId, 
+                    "Do you want to add " + animeNames + " to your list? (yes/y to confirm, no/n to cancel, /exit to exit)"));
+                session.setState(UserState.CONFIRM_ADD);
+            }*/
 
             default -> client.execute(
                     MessageFactory.simple(chatId, "I'm not expecting text right now.")
@@ -156,7 +200,7 @@ public class CommandHandler {
                 }
                 String animeNames = formatAnimeList(selectedAnimes);
                 client.execute(MessageFactory.simple(chatId, 
-                    "Do you really want to remove " + animeNames + " from the list? (yes/y to confirm, no/n to cancel, /exit to exit)"));
+                    "Do you really want to remove \n" + animeNames + "from the list? (yes/y to confirm, no/n to cancel, /exit to exit)"));
                 session.setState(UserState.CONFIRM_REMOVE);
             }
 
@@ -224,6 +268,19 @@ public class CommandHandler {
     /* =====================
         HELPERS
      ===================== */
+    private Set<String> getSelectedAnimesFromSearch(UserSession session) {
+        Set<String> selected = new HashSet<>();
+        List<AnimeSearchResult> searchResults = session.getSearchResults();
+        if (searchResults != null) {
+            for (Integer index : session.getSelectedSearchIndexes()) {
+                if (index >= 0 && index < searchResults.size()) {
+                    selected.add(searchResults.get(index).getTitle());
+                }
+            }
+        }
+        return selected;
+    }
+
     private Set<String> getSelectedAnimes(UserSession session) {
         Set<String> selected = new HashSet<>();
         List<String> cachedList = session.getCachedList();
@@ -244,9 +301,10 @@ public class CommandHandler {
         StringBuilder sb = new StringBuilder();
         int i = 0;
         for (String anime : animes) {
-            if (i > 0) sb.append(", ");
+            /*if (i > 0) sb.append(", ");
             sb.append(anime);
-            i++;
+            i++;*/
+            sb.append("- ").append(anime).append("\n");
         }
         return sb.toString();
     }

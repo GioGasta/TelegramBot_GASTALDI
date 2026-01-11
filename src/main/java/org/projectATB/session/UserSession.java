@@ -4,6 +4,7 @@ import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
+import org.projectATB.model.AnimeSearchResult;
 
 public class UserSession
 {
@@ -15,6 +16,9 @@ public class UserSession
     private Set<String> pendingRemove = new HashSet<>();
     private Set<Integer> pendingIndexes = new HashSet<>();
     private List<String> cachedList = new ArrayList<>(); // snapshot della lista
+    private List<AnimeSearchResult> searchResults = new ArrayList<>();
+    private String currentSearchQuery;
+    private Set<Integer> selectedSearchIndexes = new HashSet<>();
 
     public UserState getState()
     {
@@ -66,10 +70,50 @@ public class UserSession
         pendingRemove.clear();
         pendingIndexes.clear();
         cachedList.clear();
+        clearSearchResults();
         setState(UserState.IDLE);
     }
 
     public void clear() {
         clearPending();
+    }
+
+    // Search results related methods
+    public List<AnimeSearchResult> getSearchResults() {
+        return searchResults;
+    }
+
+    public void setSearchResults(List<AnimeSearchResult> searchResults) {
+        this.searchResults = new ArrayList<>(searchResults);
+    }
+
+    public String getCurrentSearchQuery() {
+        return currentSearchQuery;
+    }
+
+    public void setCurrentSearchQuery(String currentSearchQuery) {
+        this.currentSearchQuery = currentSearchQuery;
+    }
+
+    public Set<Integer> getSelectedSearchIndexes() {
+        return selectedSearchIndexes;
+    }
+
+    public Set<Integer> getSelectedIndexesFromPending() {
+        Set<Integer> indexes = new HashSet<>();
+        if (searchResults != null) {
+            for (int i = 0; i < searchResults.size(); i++) {
+                if (pendingAdd.contains(searchResults.get(i).getTitle())) {
+                    indexes.add(i);
+                }
+            }
+        }
+        return indexes;
+    }
+
+    public void clearSearchResults() {
+        searchResults.clear();
+        selectedSearchIndexes.clear();
+        currentSearchQuery = null;
     }
 }

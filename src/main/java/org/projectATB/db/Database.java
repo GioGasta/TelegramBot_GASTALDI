@@ -11,11 +11,6 @@ public class Database
 
     public static Connection getConnection() throws SQLException
     {
-        initializeTables();
-        return DriverManager.getConnection(URL);
-    }
-
-    private static void initializeTables() throws SQLException {
         try (Connection conn = DriverManager.getConnection(URL);
              Statement stmt = conn.createStatement()) {
             
@@ -28,5 +23,8 @@ public class Database
                         ")";
             stmt.execute(sql);
         }
+
+        return  DriverManager.getConnection(URL);
     }
+
 }

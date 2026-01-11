@@ -4,6 +4,8 @@ import org.telegram.telegrambots.meta.api.objects.replykeyboard.InlineKeyboardMa
 import org.telegram.telegrambots.meta.api.objects.replykeyboard.buttons.InlineKeyboardButton;
 import org.telegram.telegrambots.meta.api.objects.replykeyboard.buttons.InlineKeyboardRow;
 
+import org.projectATB.model.AnimeSearchResult;
+
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
@@ -59,6 +61,51 @@ public class KeyboardFactory {
             row.add(btn);
             rows.add(row);
         }
+
+        return InlineKeyboardMarkup.builder().keyboard(rows).build();
+    }
+
+    public static InlineKeyboardMarkup animeSearchResults(
+            List<AnimeSearchResult> results, 
+            Set<Integer> indexes
+    ) {
+        if (results == null || results.isEmpty()) {
+            return InlineKeyboardMarkup.builder().keyboard(List.of()).build();
+        }
+
+        List<InlineKeyboardRow> rows = new ArrayList<>();
+
+        for (int i = 0; i < results.size(); i++) {
+            AnimeSearchResult result = results.get(i);
+            boolean isSelected = indexes.contains(i);
+            
+            String display = String.format("%s %s (%s, %s) ⭐ %.2f",
+                    isSelected ? "✅" : "📺",
+                    result.getDisplayTitle(),
+                    result.getYear(),
+                    result.getType(),
+                    result.getScore()
+            );
+
+            InlineKeyboardButton button = InlineKeyboardButton.builder()
+                    .text(display)
+                    .callbackData("ANIME_SEARCH:SELECT:" + i)
+                    .build();
+
+            InlineKeyboardRow row = new InlineKeyboardRow();
+            row.add(button);
+            rows.add(row);
+        }
+
+        // Add "None of these" option
+        InlineKeyboardButton retryButton = InlineKeyboardButton.builder()
+                .text("🔄 None of these - try different search")
+                .callbackData("ANIME_SEARCH:RETRY")
+                .build();
+
+        InlineKeyboardRow retryRow = new InlineKeyboardRow();
+        retryRow.add(retryButton);
+        rows.add(retryRow);
 
         return InlineKeyboardMarkup.builder().keyboard(rows).build();
     }

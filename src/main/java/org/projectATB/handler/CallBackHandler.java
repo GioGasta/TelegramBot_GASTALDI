@@ -1,18 +1,19 @@
 package org.projectATB.handler;
 
+import org.projectATB.model.AnimeSearchResult;
 import org.projectATB.service.UserListService;
+import org.projectATB.session.SessionManager;
+import org.projectATB.session.UserSession;
+import org.projectATB.session.UserState;
+import org.projectATB.telegram.CallbackDataParser;
 import org.projectATB.telegram.KeyboardFactory;
 import org.projectATB.telegram.MessageFactory;
 import org.telegram.telegrambots.meta.api.methods.AnswerCallbackQuery;
 import org.telegram.telegrambots.meta.api.objects.Update;
 import org.telegram.telegrambots.meta.exceptions.TelegramApiException;
 import org.telegram.telegrambots.meta.generics.TelegramClient;
-import org.projectATB.session.SessionManager;
-import org.projectATB.session.UserSession;
-import org.projectATB.session.UserState;
-import org.projectATB.telegram.CallbackDataParser;
-import org.projectATB.telegram.MessageFactory;
 
+import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
@@ -24,74 +25,92 @@ public class CallBackHandler {
         this.client = client;
     }
 
-    public void handle(Update update) throws TelegramApiException
-    {
+    public void handle(Update update) throws TelegramApiException {
+
         long chatId = update.getCallbackQuery().getMessage().getChatId();
         String data = update.getCallbackQuery().getData();
         String callbackId = update.getCallbackQuery().getId();
 
         UserSession session = SessionManager.get(chatId);
 
-        // Handle anime selection callbacks (W:1, R:2, etc.)
         if (data.startsWith("W:") || data.startsWith("R:")) {
-            handleAnimeSelection(chatId, data, session, callbackId);
-            return;
+            handleListSelection(update, session);
         }
-
-        // Answer callback to remove loading state
-        AnswerCallbackQuery answerCallback = AnswerCallbackQuery.builder()
-                .callbackQueryId(callbackId)
-                .build();
-        client.execute(answerCallback);
-
-        switch (data) {
-            case CallbackDataParser.LIST_ADD -> {
-                session.setState(UserState.LIST_ADD);
-                client.execute(
-                        MessageFactory.simple(
-                                chatId,
-                                "Type the anime name(s) you want to add.\n /done when finished."
-                        )
-                );
-            }
-
-            case CallbackDataParser.LIST_WATCHED -> {
-                List<String> list = UserListService.getAnimeNames(chatId);
-
-                session.clearPending();
-                session.setState(UserState.LIST_WATCHED);
-                session.setCachedList(list);
-
-                client.execute(
-                        MessageFactory.withKeyboard(
-                                chatId,
-                                "Select animes to mark as watched: \n/done when finished.",
-                                KeyboardFactory.animeSelection(list, session.getPendingIndexes(), "W")
-                        )
-                );
-            }
-
-            case CallbackDataParser.LIST_REMOVE -> {
-                List<String> list = UserListService.getAnimeNames(chatId);
-
-                session.clearPending();
-                session.setState(UserState.LIST_REMOVE);
-                session.setCachedList(list);
-
-                client.execute(
-                        MessageFactory.withKeyboard(
-                                chatId,
-                                "Select animes to remove: \n/done when finished.",
-                                KeyboardFactory.animeSelection(list, session.getPendingIndexes(), "R")
-                        )
-                );
-            }
+        else if (data.startsWith("ANIME_SEARCH:")) {
+            handleAnimeSearch(update, session);
+        }
+        else {
+            handleMenuAction(chatId, data, session);
         }
     }
 
-    private void handleAnimeSelection(long chatId, String data, UserSession session, String callbackId) throws TelegramApiException {
+    /* =========================
+       MENU ACTIONS
+       ========================= */
+
+    private void handleMenuAction(long chatId, String data, UserSession session)
+            throws TelegramApiException {
+
+        switch (data) {
+
+            case CallbackDataParser.LIST_ADD -> {
+                session.setState(UserState.LIST_ADD);
+                client.execute(MessageFactory.simple(
+                        chatId,
+                        "Type the anime name(s) you want to add.\n/done when finished."
+                ));
+            }
+
+            case CallbackDataParser.LIST_WATCHED ->
+                    startListMode(chatId, session, UserState.LIST_WATCHED, "W",
+                            "Select animes to mark as watched:");
+
+            case CallbackDataParser.LIST_REMOVE ->
+                    startListMode(chatId, session, UserState.LIST_REMOVE, "R",
+                            "Select animes to remove:");
+        }
+    }
+
+    private void startListMode(
+            long chatId,
+            UserSession session,
+            UserState state,
+            String prefix,
+            String message
+    ) throws TelegramApiException {
+
+        List<String> list = UserListService.getAnimeNames(chatId);
+
+        session.clearPending();
+        session.setState(state);
+        session.setCachedList(list);
+
+        client.execute(
+                MessageFactory.withKeyboard(
+                        chatId,
+                        message + "\n/done when finished.",
+                        KeyboardFactory.animeSelection(
+                                list,
+                                session.getPendingIndexes(),
+                                prefix
+                        )
+                )
+        );
+    }
+
+    /* =========================
+       WATCHED / REMOVE SELECTION
+       ========================= */
+
+    private void handleListSelection(
+            Update update,
+            UserSession session
+    ) throws TelegramApiException {
+
+        String data = update.getCallbackQuery().getData();
+
         String[] parts = data.split(":");
-        String action = parts[0];
+        String prefix = parts[0];
         int index = Integer.parseInt(parts[1]);
 
         List<String> list = session.getCachedList();
@@ -99,48 +118,106 @@ public class CallBackHandler {
             return;
         }
 
-        String animeName = list.get(index - 1);
-        
-        // Toggle selection
-        boolean isNowSelected;
-        if (session.getPendingIndexes().contains(index)) {
-            session.getPendingIndexes().remove(index);
-            isNowSelected = false;
-        } else {
-            session.getPendingIndexes().add(index);
-            isNowSelected = true;
-        }
-
-        // Answer callback to remove loading state
-        AnswerCallbackQuery answerCallback = AnswerCallbackQuery.builder()
-                .callbackQueryId(callbackId)
-                .build();
-        client.execute(answerCallback);
-
-        // Show feedback message
-        String feedback;
-        if (action.equals("W")) {
-            feedback = isNowSelected ? 
-                "✅ \"" + animeName + "\" will be marked as watched" : 
-                "❌ \"" + animeName + "\" will NOT be marked as watched";
-        } else {
-            feedback = isNowSelected ? 
-                "🗑️ \"" + animeName + "\" will be removed from your list" : 
-                "➡️ \"" + animeName + "\" will NOT be removed";
-        }
-
-        // Update keyboard with current selections
-        String prefix = action.equals("W") ? "W" : "R";
-        String message = action.equals("W") ? 
-                "Select animes to mark as watched: \n/done when finished." :
-                "Select animes to remove: \n/done when finished.";
+        toggle(session.getPendingIndexes(), index);
 
         client.execute(
-                MessageFactory.withKeyboard(
-                        chatId,
-                        feedback + "\n\n" + message,
-                        KeyboardFactory.animeSelection(list, session.getPendingIndexes(), prefix)
+                MessageFactory.editKeyboard(
+                        update,
+                        KeyboardFactory.animeSelection(
+                                list,
+                                session.getPendingIndexes(),
+                                prefix
+                        )
                 )
         );
+    }
+
+    private void toggle(Set<Integer> set, int value) {
+        if (!set.add(value)) {
+            set.remove(value);
+        }
+    }
+
+    /* =========================
+        ANIME SEARCH BUTTON SELECTION
+       ========================= */
+
+    private void handleAnimeSearchSelect(
+            Update update,
+            UserSession session
+    ) throws TelegramApiException {
+
+        long chatId = update.getCallbackQuery().getMessage().getChatId();
+        int messageId = update.getCallbackQuery().getMessage().getMessageId();
+        String callbackId = update.getCallbackQuery().getId();
+
+        int index = Integer.parseInt(update.getCallbackQuery().getData().split(":")[2]);
+
+        List<AnimeSearchResult> results = session.getSearchResults();
+        if (index < 0 || index >= results.size()) return;
+
+        String animeTitle = results.get(index).getTitle();
+
+        // Toggle selection
+        boolean isSelected;
+        if (!session.getSelectedSearchIndexes().add(index)) {
+            session.getSelectedSearchIndexes().remove(index);
+            isSelected = false;
+        } else {
+            isSelected = true;
+        }
+
+        boolean isAdded = session.getPendingAdd().add(animeTitle);
+        if (!isAdded) session.getPendingAdd().remove(animeTitle);
+
+        client.execute(
+                AnswerCallbackQuery.builder()
+                        .callbackQueryId(callbackId)
+                        .text(isSelected
+                                ? "✅ Added " + animeTitle
+                                : "❌ Deselected" + animeTitle
+                        )
+                        .showAlert(false)
+                        .build()
+        );
+
+        client.execute(
+                MessageFactory.editKeyboard(
+                        update,
+                        KeyboardFactory.animeSearchResults(
+                                results,
+                                session.getSelectedIndexesFromPending()
+                        )
+                )
+        );
+
+        session.setState(UserState.LIST_ADD);
+    }
+
+    /* =========================
+       JIKAN SEARCH SELECTION
+       ========================= */
+
+    private void handleAnimeSearch(
+            Update update,
+            UserSession session
+    ) throws TelegramApiException {
+
+        String data = update.getCallbackQuery().getData();
+
+        if (data.startsWith("ANIME_SEARCH:SELECT")) {
+            handleAnimeSearchSelect(update, session);
+            return;
+        }
+
+        if (data.equals("ANIME_SEARCH:RETRY")) {
+            session.clearSearchResults();
+            session.setState(UserState.LIST_ADD);
+
+            client.execute(MessageFactory.simple(
+                    update.getCallbackQuery().getMessage().getChatId(),
+                    "🔍 Please type a different anime name to search again."
+            ));
+        }
     }
 }
