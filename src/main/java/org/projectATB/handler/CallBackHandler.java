@@ -181,12 +181,14 @@ public class CallBackHandler {
                         .build()
         );
 
+        Set<String> existingTitles = new HashSet<>(UserListService.getAnimeNames(chatId));
         client.execute(
                 MessageFactory.editKeyboard(
                         update,
                         KeyboardFactory.animeSearchResults(
                                 results,
-                                session.getSelectedIndexesFromPending()
+                                session.getSelectedIndexesFromPending(),
+                                existingTitles
                         )
                 )
         );

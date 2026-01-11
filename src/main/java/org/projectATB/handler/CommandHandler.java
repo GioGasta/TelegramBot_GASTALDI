@@ -95,8 +95,9 @@ public class CommandHandler {
                     session.setCurrentSearchQuery(text);
                     
                     String message = "📝 Found " + results.size() + " matches for '" + text + "'. Please select:";
+                    Set<String> existingTitles = new HashSet<>(UserListService.getAnimeNames(chatId));
                     client.execute(MessageFactory.withKeyboard(chatId, message,
-                            KeyboardFactory.animeSearchResults(results, session.getSelectedIndexesFromPending())));
+                            KeyboardFactory.animeSearchResults(results, session.getSelectedIndexesFromPending(), existingTitles)));
                 }
             }
 

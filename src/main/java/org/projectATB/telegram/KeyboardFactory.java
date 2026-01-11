@@ -67,7 +67,8 @@ public class KeyboardFactory {
 
     public static InlineKeyboardMarkup animeSearchResults(
             List<AnimeSearchResult> results, 
-            Set<Integer> indexes
+            Set<Integer> indexes,
+            Set<String> existingTitles
     ) {
         if (results == null || results.isEmpty()) {
             return InlineKeyboardMarkup.builder().keyboard(List.of()).build();
@@ -78,9 +79,10 @@ public class KeyboardFactory {
         for (int i = 0; i < results.size(); i++) {
             AnimeSearchResult result = results.get(i);
             boolean isSelected = indexes.contains(i);
+            boolean alreadyAdded = existingTitles.contains(result.getTitle());
             
             String display = String.format("%s %s (%s, %s) ⭐ %.2f",
-                    isSelected ? "✅" : "📺",
+                    isSelected || alreadyAdded ? "✅" : "📺",
                     result.getDisplayTitle(),
                     result.getYear(),
                     result.getType(),
