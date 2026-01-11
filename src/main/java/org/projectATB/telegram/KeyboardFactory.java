@@ -4,7 +4,9 @@ import org.telegram.telegrambots.meta.api.objects.replykeyboard.InlineKeyboardMa
 import org.telegram.telegrambots.meta.api.objects.replykeyboard.buttons.InlineKeyboardButton;
 import org.telegram.telegrambots.meta.api.objects.replykeyboard.buttons.InlineKeyboardRow;
 
+import java.util.ArrayList;
 import java.util.List;
+import java.util.Set;
 
 public class KeyboardFactory {
 
@@ -33,5 +35,31 @@ public class KeyboardFactory {
         return InlineKeyboardMarkup.builder()
                 .keyboard(List.of(row))
                 .build();
+    }
+
+    public static InlineKeyboardMarkup animeSelection(List<String> animeList, Set<Integer> selected, String prefix)
+    {
+        if (animeList == null || animeList.isEmpty()) {
+            return InlineKeyboardMarkup.builder().keyboard(List.of()).build();
+        }
+
+        List<InlineKeyboardRow> rows = new ArrayList<>();
+
+        for(int i = 0; i < animeList.size(); i++) {
+            int index = i + 1;
+            boolean checked = selected.contains(index);
+            String checkmark = checked ? "✅ " : "";
+
+            InlineKeyboardButton btn = InlineKeyboardButton.builder()
+                    .text(checkmark + index + ". " + animeList.get(i))
+                    .callbackData(prefix + ":" + index)
+                    .build();
+
+            InlineKeyboardRow row = new InlineKeyboardRow();
+            row.add(btn);
+            rows.add(row);
+        }
+
+        return InlineKeyboardMarkup.builder().keyboard(rows).build();
     }
 }
