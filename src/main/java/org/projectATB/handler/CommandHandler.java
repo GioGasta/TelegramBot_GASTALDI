@@ -65,7 +65,32 @@ public class CommandHandler {
             return;
         }
 
+        /* =====================
+            START
+        ===================== */
+        if (text.equals("/start")) {
+            displayStart(chatId);
+            session.setState(UserState.IDLE);
+            return;
+        }
+
         client.execute(MessageFactory.simple(chatId, "Unknown command."));
+    }
+
+    private void displayStart(long chatId) throws TelegramApiException
+    {
+        String message = """
+                This bot can manage your anime list and provide infos on anime and characters using jikan api (check: https://jikan.moe/)
+                
+                You can type /list to get started or search animes/characters with
+                /anime <title> and /char <name>
+                """;
+
+        client.execute(
+                MessageFactory.simple(
+                        chatId,
+                        message)
+        );
     }
 
     /* =====================
@@ -177,7 +202,7 @@ public class CommandHandler {
                 }
                 String animeNames = formatAnimeList(session.getPendingAdd());
                 client.execute(MessageFactory.simple(chatId, 
-                    "Do you want to add " + animeNames + " to your list? (yes/y to confirm, no/n to cancel, /exit to exit)"));
+                    "Do you want to add \n" + animeNames + " to your list? (yes/y to confirm, no/n to cancel, /exit to exit)"));
                 session.setState(UserState.CONFIRM_ADD);
             }
 

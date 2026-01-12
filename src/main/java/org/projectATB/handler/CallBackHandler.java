@@ -8,6 +8,7 @@ import org.projectATB.session.UserState;
 import org.projectATB.telegram.CallbackDataParser;
 import org.projectATB.telegram.KeyboardFactory;
 import org.projectATB.telegram.MessageFactory;
+import org.projectATB.telegram.MessageUtils;
 import org.telegram.telegrambots.meta.api.methods.AnswerCallbackQuery;
 import org.telegram.telegrambots.meta.api.objects.Update;
 import org.telegram.telegrambots.meta.exceptions.TelegramApiException;
@@ -40,7 +41,7 @@ public class CallBackHandler {
             handleAnimeSearch(update, session);
         }
         else {
-            handleMenuAction(chatId, data, session);
+            handleMenuAction(chatId, data, session, update);
         }
     }
 
@@ -48,8 +49,11 @@ public class CallBackHandler {
        MENU ACTIONS
        ========================= */
 
-    private void handleMenuAction(long chatId, String data, UserSession session)
+    private void handleMenuAction(long chatId, String data, UserSession session, Update update)
             throws TelegramApiException {
+        int messageId = update.getCallbackQuery().getMessage().getMessageId();
+
+        MessageUtils.removeKeyboard(client, chatId, messageId);
 
         switch (data) {
 
@@ -181,17 +185,19 @@ public class CallBackHandler {
                         .build()
         );
 
-        Set<String> existingTitles = new HashSet<>(UserListService.getAnimeNames(chatId));
-        client.execute(
-                MessageFactory.editKeyboard(
-                        update,
-                        KeyboardFactory.animeSearchResults(
-                                results,
-                                session.getSelectedIndexesFromPending(),
-                                existingTitles
-                        )
-                )
-        );
+        if (isAdded) {
+            Set<String> existingTitles = new HashSet<>(UserListService.getAnimeNames(chatId));
+            client.execute(
+                    MessageFactory.editKeyboard(
+                            update,
+                            KeyboardFactory.animeSearchResults(
+                                    results,
+                                    session.getSelectedIndexesFromPending(),
+                                    existingTitles
+                            )
+                    )
+            );
+        }
 
         session.setState(UserState.LIST_ADD);
     }

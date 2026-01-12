@@ -20,6 +20,9 @@ public class UserSession
     private String currentSearchQuery;
     private Set<Integer> selectedSearchIndexes = new HashSet<>();
 
+    private Integer lastBotMessageId;
+    private Integer lastUserMessageId;
+
     public UserState getState()
     {
         return state;
@@ -45,10 +48,6 @@ public class UserSession
         return pendingRemove;
     }
 
-    public boolean hasPendingActions() {
-        return !pendingAdd.isEmpty() || !pendingWatched.isEmpty() || !pendingRemove.isEmpty() || !pendingIndexes.isEmpty();
-    }
-
     public Set<Integer> getPendingIndexes()
     {
         return pendingIndexes;
@@ -62,6 +61,22 @@ public class UserSession
     public void setCachedList(List<String> cachedList)
     {
         this.cachedList = new ArrayList<>(cachedList);
+    }
+
+    public Integer getLastBotMessageId() {
+        return lastBotMessageId;
+    }
+
+    public void setLastBotMessageId(Integer lastBotMessageId) {
+        this.lastBotMessageId = lastBotMessageId;
+    }
+
+    public Integer getLastUserMessageId() {
+        return lastUserMessageId;
+    }
+
+    public void setLastUserMessageId(Integer lastUserMessageId) {
+        this.lastUserMessageId = lastUserMessageId;
     }
 
     public void clearPending() {
