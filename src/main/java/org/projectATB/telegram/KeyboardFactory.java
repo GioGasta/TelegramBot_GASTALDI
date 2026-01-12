@@ -111,4 +111,58 @@ public class KeyboardFactory {
 
         return InlineKeyboardMarkup.builder().keyboard(rows).build();
     }
+
+    public static InlineKeyboardMarkup animeInfoKeyboard(int malId, boolean hasSequel, boolean hasPrequel, boolean hasCharacters, boolean hasStaff, boolean hasEpisodes) {
+        List<InlineKeyboardRow> rows = new ArrayList<>();
+
+        // Row 1: Characters, Sequel, Prequel
+        InlineKeyboardRow row1 = new InlineKeyboardRow();
+        row1.add(InlineKeyboardButton.builder().text("👥 Characters").callbackData("ANIME:CHAR:" + malId).build());
+        if (hasSequel) {
+            row1.add(InlineKeyboardButton.builder().text("➡️ Sequel").callbackData("ANIME:SEQUEL:" + malId).build());
+        }
+        if (hasPrequel) {
+            row1.add(InlineKeyboardButton.builder().text("⬅️ Prequel").callbackData("ANIME:PREQUEL:" + malId).build());
+        }
+        rows.add(row1);
+
+        // Row 2: Staff, Episodes, Add, Watched
+        InlineKeyboardRow row2 = new InlineKeyboardRow();
+        if (hasStaff) {
+            row2.add(InlineKeyboardButton.builder().text("👔 Staff").callbackData("ANIME:STAFF:" + malId).build());
+        }
+        if (hasEpisodes) {
+            row2.add(InlineKeyboardButton.builder().text("📺 Episodes").callbackData("ANIME:EPISODES:" + malId).build());
+        }
+        row2.add(InlineKeyboardButton.builder().text("➕ Add").callbackData("ANIME:ADD:" + malId).build());
+        row2.add(InlineKeyboardButton.builder().text("✅ Watched").callbackData("ANIME:WATCHED:" + malId).build());
+        rows.add(row2);
+
+        return InlineKeyboardMarkup.builder().keyboard(rows).build();
+    }
+
+    public static InlineKeyboardMarkup characterListKeyboard(int malId, int characterId) {
+        InlineKeyboardRow row = new InlineKeyboardRow();
+        row.add(InlineKeyboardButton.builder().text("🔍 View Details").callbackData("ANIME:CHARDETAILS:" + malId + ":" + characterId).build());
+        return InlineKeyboardMarkup.builder().keyboard(List.of(row)).build();
+    }
+
+    public static InlineKeyboardMarkup staffListKeyboard(int malId, int staffId) {
+        InlineKeyboardRow row = new InlineKeyboardRow();
+        row.add(InlineKeyboardButton.builder().text("🔍 View Details").callbackData("ANIME:STAFFDETAILS:" + malId + ":" + staffId).build());
+        return InlineKeyboardMarkup.builder().keyboard(List.of(row)).build();
+    }
+
+    public static InlineKeyboardMarkup episodesKeyboard(int malId, String animeTitle) {
+        InlineKeyboardRow row = new InlineKeyboardRow();
+        row.add(InlineKeyboardButton.builder().text("🔍 Watch on AnimePahe").callbackData("ANIME:EPISODES_LINK:" + malId + ":" + animeTitle.replace(" ", "_")).build());
+        return InlineKeyboardMarkup.builder().keyboard(List.of(row)).build();
+    }
+
+    public static InlineKeyboardMarkup confirmKeyboard(String action, String data) {
+        InlineKeyboardRow row = new InlineKeyboardRow();
+        row.add(InlineKeyboardButton.builder().text("✅ Yes").callbackData("ANIME:" + action + "_YES:" + data).build());
+        row.add(InlineKeyboardButton.builder().text("❌ No").callbackData("ANIME:" + action + "_NO:" + data).build());
+        return InlineKeyboardMarkup.builder().keyboard(List.of(row)).build();
+    }
 }

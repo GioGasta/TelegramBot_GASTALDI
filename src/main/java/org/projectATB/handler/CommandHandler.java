@@ -1,10 +1,12 @@
 package org.projectATB.handler;
 
+import org.projectATB.dto.AnimeDetailsDTO;
 import org.projectATB.model.AnimeEntry;
 import org.projectATB.model.AnimeSearchResult;
 import org.projectATB.session.SessionManager;
 import org.projectATB.session.UserSession;
 import org.projectATB.session.UserState;
+import org.projectATB.service.JikanApiFacade;
 import org.projectATB.service.JikanApiService;
 import org.projectATB.service.UserListService;
 import org.projectATB.telegram.KeyboardFactory;
@@ -115,28 +117,33 @@ public class CommandHandler {
                         message)
         );
     }
-+
-+    private void handleAnimeCommand(long chatId, String title) throws TelegramApiException {
-+        List<AnimeSearchResult> results = JikanApiService.searchAnimeWithDetails(title);
-+        if (results == null || results.isEmpty()) {
-+            client.execute(MessageFactory.simple(chatId, "No anime found for '" + title + "'."));
-+            return;
-+        }
-+        AnimeSearchResult best = results.get(0);
-+        String msg = best.getDisplayTitle() + " (" + best.getYear() + ") - " + best.getType();
-+        client.execute(MessageFactory.simple(chatId, msg));
-+    }
-+
-+    private void handleCharCommand(long chatId, String name) throws TelegramApiException {
-+        List<AnimeSearchResult> results = JikanApiService.searchAnimeWithDetails(name);
-+        if (results == null || results.isEmpty()) {
-+            client.execute(MessageFactory.simple(chatId, "No character results for '" + name + "'."));
-+            return;
-+        }
-+        AnimeSearchResult r = results.get(0);
-+        String msg = "Character lookup not implemented yet. Related anime: " + r.getDisplayTitle();
-+        client.execute(MessageFactory.simple(chatId, msg));
-+    }
+
+    private void handleAnimeCommand(long chatId, String title) throws TelegramApiException {
+        AnimeDetailsDTO anime = JikanApiFacade.searchAnimeByTitle(title);
+        if (anime == null) {
+            client.execute(MessageFactory.simple(chatId, "No anime found for '" + title + "'."));
+            return;
+        }
+
+        boolean hasSequel = JikanApiFacade.getSequel(anime.getMalId()) != null;
+        boolean hasPrequel = JikanApiFacade.getPrequel(anime.getMalId()) != null;
+        boolean hasCharacters = !JikanApiFacade.getCharacters(anime.getMalId(), 1).isEmpty();
+        boolean hasStaff = !JikanApiFacade.getStaff(anime.getMalId(), 1).isEmpty();
+        boolean hasEpisodes = !JikanApiFacade.getEpisodes(anime.getMalId()).isEmpty();
+
+        String caption = MessageFactory.animeInfoText(anime);
+        if (!anime.getImageUrl().isEmpty()) {
+            client.execute(MessageFactory.animePhoto(chatId, anime.getImageUrl(), caption,
+                    KeyboardFactory.animeInfoKeyboard(anime.getMalId(), hasSequel, hasPrequel, hasCharacters, hasStaff, hasEpisodes)));
+        } else {
+            client.execute(MessageFactory.withKeyboard(chatId, caption,
+                    KeyboardFactory.animeInfoKeyboard(anime.getMalId(), hasSequel, hasPrequel, hasCharacters, hasStaff, hasEpisodes)));
+        }
+    }
+
+    private void handleCharCommand(long chatId, String name) throws TelegramApiException {
+        client.execute(MessageFactory.simple(chatId, "Character search is not yet implemented. Try /anime <title> instead."));
+    }
 
 
     /* =====================
