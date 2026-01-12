@@ -40,4 +40,13 @@ public class JikanApiFacade {
     public static String resolveEpisodeUrl(String animeTitle, int episode) {
         return "https://animepahe.si/";
     }
+
+    // Additional helpers for search (placeholders – to be wired to real Jikan calls)
+    public static List<AnimeSummaryDTO> searchAnimes(String query, int limit) {
+        return new ArrayList<>();
+    }
+
+    public static List<CharacterDTO> searchCharacters(String query, int limit) {
+        return new ArrayList<>();
+    }
 }
