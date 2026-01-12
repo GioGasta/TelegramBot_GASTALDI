@@ -12,6 +12,7 @@ import org.projectATB.telegram.MessageFactory;
 import org.telegram.telegrambots.meta.api.objects.Update;
 import org.telegram.telegrambots.meta.exceptions.TelegramApiException;
 import org.telegram.telegrambots.meta.generics.TelegramClient;
+import org.projectATB.telegram.MessageUtils;
 
 import java.util.ArrayList;
 import java.util.HashSet;
@@ -105,8 +106,14 @@ public class CommandHandler {
                 List<AnimeSearchResult> results = JikanApiService.searchAnimeWithDetails(text);
                 
                 if (results.isEmpty()) {
-                    client.execute(MessageFactory.simple(chatId,
-                            "❌ No anime found for '" + text + "'. Please try a different search term."));
+                    MessageUtils.sendAndTrack(
+                            client,
+                            session,
+                            MessageFactory.simple(
+                                    chatId,
+                                "❌ No anime found for '" + text + "'. Please try a different search term."
+                            )
+                    );
                 } else if (JikanApiService.isExactMatch(text, results)) {
                     // Auto-add exact match
                     AnimeSearchResult result = results.get(0);
@@ -121,8 +128,19 @@ public class CommandHandler {
                     
                     String message = "📝 Found " + results.size() + " matches for '" + text + "'. Please select:";
                     Set<String> existingTitles = new HashSet<>(UserListService.getAnimeNames(chatId));
-                    client.execute(MessageFactory.withKeyboard(chatId, message,
-                            KeyboardFactory.animeSearchResults(results, session.getSelectedIndexesFromPending(), existingTitles)));
+                    MessageUtils.sendAndTrack(
+                            client,
+                            session,
+                            MessageFactory.withKeyboard(
+                                    chatId,
+                                    message,
+                                    KeyboardFactory.animeSearchResults(
+                                            results,
+                                            session.getSelectedIndexesFromPending(),
+                                            existingTitles
+                                    )
+                            )
+                    );
                 }
             }
 
@@ -166,8 +184,13 @@ public class CommandHandler {
                 session.setState(UserState.CONFIRM_ADD);
             }*/
 
-            default -> client.execute(
-                    MessageFactory.simple(chatId, "I'm not expecting text right now.")
+            default -> MessageUtils.sendAndTrack(
+                    client,
+                    session,
+                    MessageFactory.simple(
+                            session.getChatId(),
+                            "I'm not expecting text right now."
+                    )
             );
         }
     }
@@ -184,7 +207,14 @@ public class CommandHandler {
         }
 
         session.clearPending();
-        client.execute(MessageFactory.simple(chatId, "Operation cancelled. All pending changes have been discarded."));
+        MessageUtils.sendAndTrack(
+                client,
+                session,
+                MessageFactory.simple(
+                        session.getChatId(),
+                        "Operation cancelled. All pending changes have been discarded."
+                )
+        );
     }
 
     /* =====================
@@ -201,8 +231,14 @@ public class CommandHandler {
                     return;
                 }
                 String animeNames = formatAnimeList(session.getPendingAdd());
-                client.execute(MessageFactory.simple(chatId, 
-                    "Do you want to add \n" + animeNames + " to your list? (yes/y to confirm, no/n to cancel, /exit to exit)"));
+                MessageUtils.sendAndTrack(
+                        client,
+                        session,
+                        MessageFactory.simple(
+                                chatId,
+                                "Do you want to add \n" + animeNames + "to your list? (yes/y to confirm, no/n to cancel, /exit to exit)"
+                        )
+                );
                 session.setState(UserState.CONFIRM_ADD);
             }
 
@@ -213,8 +249,14 @@ public class CommandHandler {
                     return;
                 }
                 String animeNames = formatAnimeList(selectedAnimes);
-                client.execute(MessageFactory.simple(chatId, 
-                    "Do you want to add " + animeNames + " to watched? (yes/y to confirm, no/n to cancel, /exit to exit)"));
+                MessageUtils.sendAndTrack(
+                        client,
+                        session,
+                        MessageFactory.simple(
+                                chatId,
+                                "Do you want to add \n" + animeNames + "to watched? (yes/y to confirm, no/n to cancel, /exit to exit)"
+                        )
+                );
                 session.setState(UserState.CONFIRM_WATCHED);
             }
 
@@ -225,8 +267,14 @@ public class CommandHandler {
                     return;
                 }
                 String animeNames = formatAnimeList(selectedAnimes);
-                client.execute(MessageFactory.simple(chatId, 
-                    "Do you really want to remove \n" + animeNames + "from the list? (yes/y to confirm, no/n to cancel, /exit to exit)"));
+                MessageUtils.sendAndTrack(
+                        client,
+                        session,
+                        MessageFactory.simple(
+                                chatId,
+                                "Do you really want to remove \n" + animeNames + "from the list? (yes/y to confirm, no/n to cancel, /exit to exit)"
+                        )
+                );
                 session.setState(UserState.CONFIRM_REMOVE);
             }
 
@@ -283,11 +331,24 @@ public class CommandHandler {
             }
             session.clearPending();
         } else if (response.equals("no") || response.equals("n")) {
-            client.execute(MessageFactory.simple(chatId, "Operation cancelled. Use /list to see your anime list again."));
+            MessageUtils.sendAndTrack(
+                    client,
+                    session,
+                    MessageFactory.simple(
+                            chatId,
+                            "Operation cancelled. Use /list to see your anime list again."
+                    )
+            );
             session.clearPending();
         } else {
-            client.execute(MessageFactory.simple(chatId, 
-                "Please respond with yes/y to confirm, no/n to cancel, or /exit to exit immediately."));
+            MessageUtils.sendAndTrack(
+                    client,
+                    session,
+                    MessageFactory.simple(
+                            chatId,
+                            "Please respond with yes/y to confirm, no/n to cancel, or /exit to exit immediately."
+                    )
+            );
         }
     }
 

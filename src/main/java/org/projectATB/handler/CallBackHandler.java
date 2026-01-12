@@ -59,10 +59,14 @@ public class CallBackHandler {
 
             case CallbackDataParser.LIST_ADD -> {
                 session.setState(UserState.LIST_ADD);
-                client.execute(MessageFactory.simple(
-                        chatId,
-                        "Type the anime name(s) you want to add.\n/done when finished."
-                ));
+                MessageUtils.sendAndTrack(
+                        client,
+                        session,
+                        MessageFactory.simple(
+                            chatId,
+                            "Type the anime name(s) you want to add.\n/done when finished."
+                        )
+                );
             }
 
             case CallbackDataParser.LIST_WATCHED ->
@@ -89,7 +93,9 @@ public class CallBackHandler {
         session.setState(state);
         session.setCachedList(list);
 
-        client.execute(
+        MessageUtils.sendAndTrack(
+                client,
+                session,
                 MessageFactory.withKeyboard(
                         chatId,
                         message + "\n/done when finished.",
@@ -222,10 +228,14 @@ public class CallBackHandler {
             session.clearSearchResults();
             session.setState(UserState.LIST_ADD);
 
-            client.execute(MessageFactory.simple(
-                    update.getCallbackQuery().getMessage().getChatId(),
-                    "🔍 Please type a different anime name to search again."
-            ));
+            MessageUtils.sendAndTrack(
+                    client,
+                    session,
+                    MessageFactory.simple(
+                        update.getCallbackQuery().getMessage().getChatId(),
+                        "🔍 Please type a different anime name to search again."
+                    )
+            );
         }
     }
 }

@@ -10,6 +10,7 @@ public class UserSession
 {
 
     private UserState state = UserState.IDLE;
+    private final long chatID;
 
     private Set<String> pendingAdd = new HashSet<>();
     private Set<String> pendingWatched = new HashSet<>();
@@ -31,6 +32,14 @@ public class UserSession
     public void setState(UserState state)
     {
         this.state = state;
+    }
+
+    public UserSession(long chatId) {
+        this.chatID = chatId;
+    }
+
+    public long getChatId() {
+        return chatID;
     }
 
     public Set<String> getPendingAdd()

@@ -8,7 +8,7 @@ public class SessionManager {
     private static final Map<Long, UserSession> sessions = new ConcurrentHashMap<>();
 
     public static UserSession get(long chatId) {
-        return sessions.computeIfAbsent(chatId, id -> new UserSession());
+        return sessions.computeIfAbsent(chatId, id -> new UserSession(id));
     }
 
     public static void clear(long chatId) {
