@@ -74,7 +74,29 @@ public class CommandHandler {
             session.setState(UserState.IDLE);
             return;
         }
-
+ 
+        /* =====================
+            NEW COMMANDS: /anime and /char
+        ===================== */
+        if (text.startsWith("/anime ")) {
+            String title = text.substring(7).trim();
+            try {
+                handleAnimeCommand(chatId, title);
+            } catch (TelegramApiException e) {
+                throw e;
+            }
+            return;
+        }
+        if (text.startsWith("/char ")) {
+            String name = text.substring(6).trim();
+            try {
+                handleCharCommand(chatId, name);
+            } catch (TelegramApiException e) {
+                throw e;
+            }
+            return;
+        }
+ 
         client.execute(MessageFactory.simple(chatId, "Unknown command."));
     }
 
@@ -82,17 +104,40 @@ public class CommandHandler {
     {
         String message = """
                 This bot can manage your anime list and provide infos on anime and characters using jikan api (check: https://jikan.moe/)
-                
+                 
                 You can type /list to get started or search animes/characters with
                 /anime <title> and /char <name>
                 """;
-
+ 
         client.execute(
                 MessageFactory.simple(
                         chatId,
                         message)
         );
     }
++
++    private void handleAnimeCommand(long chatId, String title) throws TelegramApiException {
++        List<AnimeSearchResult> results = JikanApiService.searchAnimeWithDetails(title);
++        if (results == null || results.isEmpty()) {
++            client.execute(MessageFactory.simple(chatId, "No anime found for '" + title + "'."));
++            return;
++        }
++        AnimeSearchResult best = results.get(0);
++        String msg = best.getDisplayTitle() + " (" + best.getYear() + ") - " + best.getType();
++        client.execute(MessageFactory.simple(chatId, msg));
++    }
++
++    private void handleCharCommand(long chatId, String name) throws TelegramApiException {
++        List<AnimeSearchResult> results = JikanApiService.searchAnimeWithDetails(name);
++        if (results == null || results.isEmpty()) {
++            client.execute(MessageFactory.simple(chatId, "No character results for '" + name + "'."));
++            return;
++        }
++        AnimeSearchResult r = results.get(0);
++        String msg = "Character lookup not implemented yet. Related anime: " + r.getDisplayTitle();
++        client.execute(MessageFactory.simple(chatId, msg));
++    }
+
 
     /* =====================
        FREE TEXT HANDLER
